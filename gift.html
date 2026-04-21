@@ -3,263 +3,118 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>VoyageAI Galactic Gift</title>
+    <title>VoyageAI GIFT</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
-        :root {
-            --gold: #ffd700;
-            --deep-space: #000005;
-            --nebula: #4b0082;
-            --fire: #ff4500;
-        }
-
-        body, html {
-            margin: 0; padding: 0;
-            background: var(--deep-space);
-            color: #fff;
-            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-            overflow: hidden;
-            height: 100vh;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-        }
-
-        #main-canvas {
-            position: absolute;
-            top: 0; left: 0;
-            z-index: 1;
-        }
-
-        .ui-layer {
-            position: relative;
-            z-index: 10;
-            text-align: center;
-            width: 100%;
-            max-width: 500px;
-            padding: 20px;
-        }
-
-        .glass-card {
-            background: rgba(255, 255, 255, 0.05);
-            backdrop-filter: blur(10px);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            border-radius: 20px;
-            padding: 30px;
-            box-shadow: 0 15px 35px rgba(0,0,0,0.5);
-        }
-
-        h1 {
-            font-size: 2rem;
-            margin-bottom: 10px;
-            background: linear-gradient(to right, #fff, var(--gold));
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            text-transform: uppercase;
-            letter-spacing: 3px;
-        }
-
-        p { color: #aaa; margin-bottom: 30px; }
-
-        .btn-action {
-            padding: 18px 45px;
-            font-size: 1.2rem;
-            font-weight: bold;
-            color: #000;
-            background: var(--gold);
-            border: none;
-            border-radius: 50px;
-            cursor: pointer;
-            box-shadow: 0 0 30px rgba(255, 215, 0, 0.4);
-            transition: 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-            text-transform: uppercase;
-        }
-
-        .btn-action:hover {
-            transform: scale(1.05);
-            box-shadow: 0 0 50px rgba(255, 215, 0, 0.7);
-        }
-
-        .btn-action:active { transform: scale(0.95); }
-
+        body, html { margin: 0; padding: 0; background: #000; overflow: hidden; height: 100vh; font-family: 'Arial', sans-serif; color: #fff; }
+        
+        /* Звезды */
+        #stars { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 1; }
+        
+        .scene { position: relative; z-index: 10; width: 100%; height: 100vh; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; }
         .hidden { display: none !important; }
 
-        /* Rocket Styling */
-        .rocket-box {
-            position: absolute;
-            bottom: -100px;
-            left: 50%;
-            transform: translateX(-50%);
-            width: 60px;
-            z-index: 5;
+        /* Кнопка запуска */
+        .start-btn {
+            padding: 25px 60px; font-size: 28px; font-weight: 900; color: #000; background: linear-gradient(45deg, #ffd700, #ff8c00);
+            border: none; border-radius: 60px; cursor: pointer; box-shadow: 0 0 40px rgba(255, 215, 0, 0.6);
+            text-transform: uppercase; letter-spacing: 2px; animation: pulse 1.5s infinite;
         }
+        @keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.05); } 100% { transform: scale(1); } }
 
-        .rocket-anim {
-            animation: launch 2.5s cubic-bezier(0.47, 0, 0.745, 0.715) forwards;
+        /* Ракета */
+        #rocket {
+            position: absolute; bottom: -150px; width: 100px; z-index: 15;
+            filter: drop-shadow(0 0 20px #ff4500); display: none;
         }
-
+        .rocket-fly { display: block !important; animation: launch 2s cubic-bezier(0.6, 0, 0.4, 1) forwards; }
         @keyframes launch {
-            0% { bottom: -100px; transform: translateX(-50%) scale(1); }
-            30% { bottom: 100px; transform: translateX(-50%) scale(1.1); }
-            100% { bottom: 120%; transform: translateX(-50%) scale(0.2); }
+            0% { bottom: -150px; transform: scale(1.5); }
+            100% { bottom: 60%; transform: scale(0.3); }
         }
 
-        /* Result View */
-        .result-title { font-size: 2.5rem; color: var(--gold); margin: 0; }
-        .result-amount { font-size: 4rem; font-weight: 900; margin: 10px 0; text-shadow: 0 0 20px var(--gold); }
-        .badge { background: #fff; color: #000; padding: 5px 15px; border-radius: 5px; font-weight: bold; }
+        /* Цель - Звезда */
+        #big-star {
+            width: 200px; height: 200px; background: radial-gradient(circle, #fff, #ffd700, transparent);
+            border-radius: 50%; box-shadow: 0 0 100px #ffd700; position: absolute; top: 15%;
+            animation: glow 2s infinite alternate; display: none;
+        }
+        @keyframes glow { from { transform: scale(1); opacity: 0.8; } to { transform: scale(1.2); opacity: 1; } }
+
+        /* Приз */
+        .prize-text { font-size: 50px; font-weight: 900; color: #ffd700; text-shadow: 0 0 30px #ff8c00; margin-bottom: 20px; }
+        .prize-sub { font-size: 24px; color: #fff; opacity: 0.8; }
+        .claim-btn { margin-top: 40px; padding: 15px 40px; background: #fff; color: #000; border-radius: 10px; font-weight: bold; border: none; cursor: pointer; }
 
     </style>
 </head>
 <body>
-    <canvas id="main-canvas"></canvas>
+    <canvas id="stars"></canvas>
 
-    <div class="ui-layer" id="view-start">
-        <div class="glass-card">
-            <h1>Galactic Gift</h1>
-            <p>Обнаружена энергетическая капсула в туманности Ориона. Командор, готовы к захвату?</p>
-            <button class="btn-action" onclick="handleLaunch()">Запуск перехватчика 🚀</button>
-        </div>
+    <div id="scene-1" class="scene">
+        <h1 style="font-size: 40px; margin-bottom: 50px;">ТВОЙ ПОДАРОК 🎁</h1>
+        <button class="start-btn" onclick="start()">ЗАПУСК РАКЕТЫ</button>
     </div>
 
-    <div class="ui-layer hidden" id="view-final">
-        <div class="glass-card">
-            <div class="result-title">МИССИЯ УСПЕШНА</div>
-            <div class="result-amount">+1500 ⚡</div>
-            <p>Пакет данных расшифрован: <span class="badge">РАНГ NEBULA</span></p>
-            <button class="btn-action" style="background: #fff; margin-top: 20px;" onclick="claim()">Зачислить на баланс</button>
-        </div>
+    <div id="scene-2" class="scene hidden">
+        <div id="big-star"></div>
+        <img id="rocket" src="https://cdn-icons-png.flaticon.com/512/1356/1356479.png" alt="rocket">
     </div>
 
-    <div class="rocket-box" id="rocket">
-        <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M12 2L9 9H15L12 2Z" fill="#FF4500"/>
-            <path d="M9 9V17C9 18.6569 10.3431 20 12 20C13.6569 20 15 18.6569 15 17V9H9Z" fill="white"/>
-            <path d="M9 14L7 17H11L9 14Z" fill="#FF4500"/>
-            <path d="M15 14L17 17H13L15 14Z" fill="#FF4500"/>
-            <circle cx="12" cy="13" r="1.5" fill="#000050"/>
-        </svg>
+    <div id="scene-3" class="scene hidden">
+        <div class="prize-text">+1500 ЭНЕРГИИ</div>
+        <div class="prize-sub">РАНГ NEBULA АКТИВИРОВАН</div>
+        <button class="claim-btn" onclick="claim()">ЗАБРАТЬ ПРИЗ</button>
     </div>
 
     <script>
         const tg = window.Telegram.WebApp;
         tg.expand();
-        tg.HapticFeedback.impactOccurred('heavy');
 
-        const canvas = document.getElementById('main-canvas');
+        const canvas = document.getElementById('stars');
         const ctx = canvas.getContext('2d');
-        let width, height, particles = [];
+        let w, h, stars = [];
 
-        function init() {
-            width = canvas.width = window.innerWidth;
-            height = canvas.height = window.innerHeight;
-            particles = [];
-            for(let i=0; i<150; i++) {
-                particles.push(new Star());
-            }
+        function initStars() {
+            w = canvas.width = window.innerWidth;
+            h = canvas.height = window.innerHeight;
+            stars = [];
+            for(let i=0; i<200; i++) stars.push({x:Math.random()*w, y:Math.random()*h, r:Math.random()*2, s:Math.random()*0.5});
         }
-
-        class Star {
-            constructor() {
-                this.reset();
-            }
-            reset() {
-                this.x = Math.random() * width;
-                this.y = Math.random() * height;
-                this.z = Math.random() * width;
-                this.size = 1;
-            }
-            update() {
-                this.z -= 5;
-                if(this.z <= 0) this.reset();
-            }
-            draw() {
-                let x = (this.x - width/2) * (width/this.z) + width/2;
-                let y = (this.y - height/2) * (width/this.z) + height/2;
-                let s = (1 - this.z/width) * 3;
-                ctx.fillStyle = "rgba(255,255,255," + (1 - this.z/width) + ")";
-                ctx.beginPath();
-                ctx.arc(x, y, s, 0, Math.PI*2);
-                ctx.fill();
-            }
-        }
-
-        // EXPLOSION SYSTEM
-        class Particle {
-            constructor(x, y, color) {
-                this.x = x; this.y = y;
-                this.color = color;
-                this.angle = Math.random() * Math.PI * 2;
-                this.velocity = Math.random() * 8 + 2;
-                this.friction = 0.95;
-                this.gravity = 0.1;
-                this.life = 1;
-                this.decay = Math.random() * 0.02 + 0.01;
-            }
-            update() {
-                this.velocity *= this.friction;
-                this.x += Math.cos(this.angle) * this.velocity;
-                this.y += Math.sin(this.angle) * this.velocity + this.gravity;
-                this.life -= this.decay;
-            }
-            draw() {
-                ctx.globalAlpha = this.life;
-                ctx.fillStyle = this.color;
-                ctx.beginPath();
-                ctx.arc(this.x, this.y, 3, 0, Math.PI*2);
-                ctx.fill();
-            }
-        }
-
-        let explosionParticles = [];
-
-        function createExplosion(x, y) {
-            const colors = ['#ffd700', '#ff4500', '#ffffff', '#ff8c00'];
-            for(let i=0; i<100; i++) {
-                explosionParticles.push(new Particle(x, y, colors[Math.floor(Math.random() * colors.length)]));
-            }
-        }
-
-        function animate() {
-            ctx.fillStyle = "#000005";
-            ctx.fillRect(0,0,width,height);
-            
-            particles.forEach(p => { p.update(); p.draw(); });
-            
-            explosionParticles.forEach((ep, index) => {
-                ep.update();
-                ep.draw();
-                if(ep.life <= 0) explosionParticles.splice(index, 1);
+        function drawStars() {
+            ctx.fillStyle = '#000'; ctx.fillRect(0,0,w,h);
+            ctx.fillStyle = '#fff';
+            stars.forEach(s => {
+                ctx.beginPath(); ctx.arc(s.x, s.y, s.r, 0, Math.PI*2); ctx.fill();
+                s.y += s.s; if(s.y > h) s.y = 0;
             });
-
-            requestAnimationFrame(animate);
+            requestAnimationFrame(drawStars);
         }
+        initStars(); drawStars();
 
-        init();
-        animate();
-
-        function handleLaunch() {
-            document.getElementById('view-start').classList.add('hidden');
-            document.getElementById('rocket').classList.add('rocket-anim');
-            tg.HapticFeedback.notificationOccurred('warning');
-
-            setTimeout(() => {
-                createExplosion(width/2, height/3);
-                tg.HapticFeedback.impactOccurred('heavy');
-            }, 2000);
+        function start() {
+            document.getElementById('scene-1').classList.add('hidden');
+            document.getElementById('scene-2').classList.remove('hidden');
+            document.getElementById('big-star').style.display = 'block';
+            document.getElementById('rocket').classList.add('rocket-fly');
+            tg.HapticFeedback.impactOccurred('heavy');
 
             setTimeout(() => {
-                document.getElementById('view-final').classList.remove('hidden');
+                // Эффект взрыва (просто белая вспышка для яркости)
+                document.body.style.background = '#fff';
                 tg.HapticFeedback.notificationOccurred('success');
-            }, 2800);
+                setTimeout(() => {
+                    document.body.style.background = '#000';
+                    document.getElementById('scene-2').classList.add('hidden');
+                    document.getElementById('scene-3').classList.remove('hidden');
+                }, 100);
+            }, 1900);
         }
 
         function claim() {
             tg.sendData("REWARD_GALACTIC_2026");
             tg.close();
         }
-
-        window.addEventListener('resize', init);
     </script>
 </body>
 </html>
