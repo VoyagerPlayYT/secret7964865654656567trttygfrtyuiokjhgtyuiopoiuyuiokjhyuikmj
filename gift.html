@@ -3,115 +3,128 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>VoyageAI GIFT</title>
+    <title>VoyageAI - GIFT</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
-        body, html { margin: 0; padding: 0; background: #000; overflow: hidden; height: 100vh; font-family: 'Arial', sans-serif; color: #fff; }
-        
-        /* Звезды */
-        #stars { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 1; }
-        
-        .scene { position: relative; z-index: 10; width: 100%; height: 100vh; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; }
+        body, html { margin: 0; padding: 0; background: #000; overflow: hidden; height: 100vh; font-family: 'Segoe UI', sans-serif; color: #fff; }
+        #stars-container { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 1; }
+        .scene { position: relative; z-index: 10; width: 100%; height: 100vh; display: flex; flex-direction: column; justify-content: center; align-items: center; }
         .hidden { display: none !important; }
 
-        /* Кнопка запуска */
-        .start-btn {
-            padding: 25px 60px; font-size: 28px; font-weight: 900; color: #000; background: linear-gradient(45deg, #ffd700, #ff8c00);
-            border: none; border-radius: 60px; cursor: pointer; box-shadow: 0 0 40px rgba(255, 215, 0, 0.6);
-            text-transform: uppercase; letter-spacing: 2px; animation: pulse 1.5s infinite;
+        /* Кнопка */
+        .btn-launch {
+            padding: 20px 50px; font-size: 24px; font-weight: bold; color: #000; background: #ffd700;
+            border: none; border-radius: 50px; cursor: pointer; box-shadow: 0 0 30px #ffd700;
+            transition: 0.3s; text-transform: uppercase;
         }
-        @keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.05); } 100% { transform: scale(1); } }
+        .btn-launch:active { transform: scale(0.9); }
 
-        /* Ракета */
-        #rocket {
-            position: absolute; bottom: -150px; width: 100px; z-index: 15;
-            filter: drop-shadow(0 0 20px #ff4500); display: none;
+        /* Ракета (SVG) */
+        #rocket-wrapper {
+            position: absolute; bottom: -200px; width: 80px; height: 120px; z-index: 20;
+            transition: transform 2s cubic-bezier(0.6, 0, 0.4, 1);
         }
-        .rocket-fly { display: block !important; animation: launch 2s cubic-bezier(0.6, 0, 0.4, 1) forwards; }
-        @keyframes launch {
-            0% { bottom: -150px; transform: scale(1.5); }
-            100% { bottom: 60%; transform: scale(0.3); }
-        }
+        .rocket-svg { width: 100%; height: 100%; filter: drop-shadow(0 0 20px #ff4500); }
 
-        /* Цель - Звезда */
-        #big-star {
-            width: 200px; height: 200px; background: radial-gradient(circle, #fff, #ffd700, transparent);
-            border-radius: 50%; box-shadow: 0 0 100px #ffd700; position: absolute; top: 15%;
-            animation: glow 2s infinite alternate; display: none;
+        /* Цель */
+        #star-target {
+            width: 150px; height: 150px; background: radial-gradient(circle, #fff, #ffd700, transparent);
+            border-radius: 50%; box-shadow: 0 0 80px #ffd700; position: absolute; top: 15%;
+            animation: pulseStar 1.5s infinite alternate; display: none;
         }
-        @keyframes glow { from { transform: scale(1); opacity: 0.8; } to { transform: scale(1.2); opacity: 1; } }
+        @keyframes pulseStar { from { transform: scale(1); opacity: 0.8; } to { transform: scale(1.15); opacity: 1; } }
 
         /* Приз */
-        .prize-text { font-size: 50px; font-weight: 900; color: #ffd700; text-shadow: 0 0 30px #ff8c00; margin-bottom: 20px; }
-        .prize-sub { font-size: 24px; color: #fff; opacity: 0.8; }
-        .claim-btn { margin-top: 40px; padding: 15px 40px; background: #fff; color: #000; border-radius: 10px; font-weight: bold; border: none; cursor: pointer; }
+        .win-view { text-align: center; animation: zoomIn 0.5s ease-out; }
+        .win-title { font-size: 50px; font-weight: 900; color: #ffd700; text-shadow: 0 0 30px #ff8c00; }
+        .win-sub { font-size: 20px; margin-top: 10px; opacity: 0.8; }
+        @keyframes zoomIn { from { transform: scale(0); opacity: 0; } to { transform: scale(1); opacity: 1; } }
 
+        .flash { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: #fff; z-index: 100; opacity: 0; pointer-events: none; }
     </style>
 </head>
 <body>
-    <canvas id="stars"></canvas>
+    <div id="stars-container"></div>
+    <div id="flash-overlay" class="flash"></div>
 
-    <div id="scene-1" class="scene">
-        <h1 style="font-size: 40px; margin-bottom: 50px;">ТВОЙ ПОДАРОК 🎁</h1>
-        <button class="start-btn" onclick="start()">ЗАПУСК РАКЕТЫ</button>
+    <!-- Шаг 1 -->
+    <div id="scene-start" class="scene">
+        <h1 style="margin-bottom: 30px; letter-spacing: 2px;">ВАШ ПОДАРОК 🌌</h1>
+        <button class="btn-launch" onclick="launch()">ЗАПУСК 🚀</button>
     </div>
 
-    <div id="scene-2" class="scene hidden">
-        <div id="big-star"></div>
-        <img id="rocket" src="https://cdn-icons-png.flaticon.com/512/1356/1356479.png" alt="rocket">
+    <!-- Шаг 2 -->
+    <div id="scene-flight" class="scene hidden">
+        <div id="star-target"></div>
+        <div id="rocket-wrapper">
+            <!-- SVG Ракеты -->
+            <svg class="rocket-svg" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                <path d="M12 2L8 10V18C8 19.1 8.9 20 10 20H14C15.1 20 16 19.1 16 18V10L12 2Z" fill="#fff"/>
+                <path d="M12 2L10 10H14L12 2Z" fill="#ff4500"/>
+                <path d="M8 14L5 18H11L8 14Z" fill="#ff4500"/>
+                <path d="M16 14L19 18H13L16 14Z" fill="#ff4500"/>
+                <circle cx="12" cy="14" r="2" fill="#000055"/>
+            </svg>
+        </div>
     </div>
 
-    <div id="scene-3" class="scene hidden">
-        <div class="prize-text">+1500 ЭНЕРГИИ</div>
-        <div class="prize-sub">РАНГ NEBULA АКТИВИРОВАН</div>
-        <button class="claim-btn" onclick="claim()">ЗАБРАТЬ ПРИЗ</button>
+    <!-- Шаг 3 -->
+    <div id="scene-win" class="scene hidden">
+        <div class="win-view">
+            <div class="win-title">+1500 ⚡</div>
+            <div class="win-sub">РАНГ <b>NEBULA</b> АКТИВИРОВАН</div>
+            <button class="btn-launch" style="margin-top: 50px; background: #fff;" onclick="closeApp()">ЗАБРАТЬ 🎁</button>
+        </div>
     </div>
 
     <script>
         const tg = window.Telegram.WebApp;
         tg.expand();
 
-        const canvas = document.getElementById('stars');
-        const ctx = canvas.getContext('2d');
-        let w, h, stars = [];
-
-        function initStars() {
-            w = canvas.width = window.innerWidth;
-            h = canvas.height = window.innerHeight;
-            stars = [];
-            for(let i=0; i<200; i++) stars.push({x:Math.random()*w, y:Math.random()*h, r:Math.random()*2, s:Math.random()*0.5});
+        // Простой фон со звездами
+        const container = document.getElementById('stars-container');
+        for(let i=0; i<100; i++) {
+            const s = document.createElement('div');
+            s.style.position = 'absolute';
+            s.style.left = Math.random()*100 + '%';
+            s.style.top = Math.random()*100 + '%';
+            s.style.width = Math.random()*3 + 'px';
+            s.style.height = s.style.width;
+            s.style.background = '#fff';
+            s.style.borderRadius = '50%';
+            s.style.opacity = Math.random();
+            container.appendChild(s);
         }
-        function drawStars() {
-            ctx.fillStyle = '#000'; ctx.fillRect(0,0,w,h);
-            ctx.fillStyle = '#fff';
-            stars.forEach(s => {
-                ctx.beginPath(); ctx.arc(s.x, s.y, s.r, 0, Math.PI*2); ctx.fill();
-                s.y += s.s; if(s.y > h) s.y = 0;
-            });
-            requestAnimationFrame(drawStars);
-        }
-        initStars(); drawStars();
 
-        function start() {
-            document.getElementById('scene-1').classList.add('hidden');
-            document.getElementById('scene-2').classList.remove('hidden');
-            document.getElementById('big-star').style.display = 'block';
-            document.getElementById('rocket').classList.add('rocket-fly');
+        function launch() {
+            document.getElementById('scene-start').classList.add('hidden');
+            document.getElementById('scene-flight').classList.remove('hidden');
+            document.getElementById('star-target').style.display = 'block';
+            
+            const rocket = document.getElementById('rocket-wrapper');
+            rocket.style.bottom = '-100px';
+            
             tg.HapticFeedback.impactOccurred('heavy');
 
             setTimeout(() => {
-                // Эффект взрыва (просто белая вспышка для яркости)
-                document.body.style.background = '#fff';
+                rocket.style.transform = 'translateY(-70vh) scale(0.3)';
+            }, 100);
+
+            setTimeout(() => {
+                // Вспышка
+                const flash = document.getElementById('flash-overlay');
+                flash.style.opacity = '1';
                 tg.HapticFeedback.notificationOccurred('success');
+                
                 setTimeout(() => {
-                    document.body.style.background = '#000';
-                    document.getElementById('scene-2').classList.add('hidden');
-                    document.getElementById('scene-3').classList.remove('hidden');
-                }, 100);
-            }, 1900);
+                    flash.style.opacity = '0';
+                    document.getElementById('scene-flight').classList.add('hidden');
+                    document.getElementById('scene-win').classList.remove('hidden');
+                }, 150);
+            }, 1800);
         }
 
-        function claim() {
+        function closeApp() {
             tg.sendData("REWARD_GALACTIC_2026");
             tg.close();
         }
