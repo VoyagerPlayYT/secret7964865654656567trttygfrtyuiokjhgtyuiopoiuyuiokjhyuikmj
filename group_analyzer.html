@@ -1,0 +1,551 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>VoyageAI - Group Analyzer</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body, html {
+            margin: 0; padding: 0;
+            background: linear-gradient(135deg, #0f0c29, #302b63, #24243e);
+            min-height: 100vh; font-family: 'Segoe UI', sans-serif;
+            color: #fff; overflow-x: hidden;
+        }
+
+        /* Фон с частицами */
+        #particles {
+            position: fixed; top: 0; left: 0;
+            width: 100%; height: 100%; z-index: 0;
+            pointer-events: none;
+        }
+        .particle {
+            position: absolute; border-radius: 50%;
+            background: rgba(255,255,255,0.1);
+            animation: float-particle 15s infinite ease-in-out;
+        }
+        @keyframes float-particle {
+            0%, 100% { transform: translateY(100vh) rotate(0deg); opacity: 0; }
+            10% { opacity: 1; }
+            90% { opacity: 1; }
+            100% { transform: translateY(-100px) rotate(360deg); opacity: 0; }
+        }
+
+        .container {
+            position: relative; z-index: 1;
+            padding: 20px; max-width: 500px;
+            margin: 0 auto; min-height: 100vh;
+        }
+
+        /* Шапка */
+        .header {
+            text-align: center; padding: 30px 0;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            margin-bottom: 30px;
+        }
+        .header h1 {
+            font-size: 28px; font-weight: 900;
+            background: linear-gradient(45deg, #00f5ff, #7c3aed, #f472b6);
+            background-size: 200% 200%;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            animation: gradient 3s ease infinite;
+        }
+        @keyframes gradient {
+            0%, 100% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+        }
+        .header p { opacity: 0.7; margin-top: 10px; font-size: 14px; }
+
+        /* Карточки */
+        .card {
+            background: rgba(255,255,255,0.05);
+            border-radius: 20px;
+            padding: 25px; margin-bottom: 20px;
+            border: 1px solid rgba(255,255,255,0.1);
+            backdrop-filter: blur(10px);
+            transition: transform 0.3s, box-shadow 0.3s;
+        }
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 20px 40px rgba(0,0,0,0.3);
+        }
+        .card-title {
+            font-size: 14px; text-transform: uppercase;
+            letter-spacing: 2px; opacity: 0.6;
+            margin-bottom: 15px;
+        }
+        .card-value {
+            font-size: 48px; font-weight: 900;
+            background: linear-gradient(45deg, #00f5ff, #7c3aed);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .card-subtitle { font-size: 12px; opacity: 0.5; margin-top: 5px; }
+
+        /* Настроение */
+        .mood-container {
+            display: flex; gap: 10px;
+            flex-wrap: wrap; margin-top: 15px;
+        }
+        .mood-item {
+            padding: 8px 16px; border-radius: 20px;
+            font-size: 14px; font-weight: 600;
+            display: flex; align-items: center; gap: 8px;
+            animation: mood-appear 0.5s ease-out forwards;
+            opacity: 0; transform: scale(0.8);
+        }
+        @keyframes mood-appear {
+            to { opacity: 1; transform: scale(1); }
+        }
+        .mood-positive { background: rgba(34, 197, 94, 0.2); color: #22c55e; }
+        .mood-negative { background: rgba(239, 68, 68, 0.2); color: #ef4444; }
+        .mood-neutral { background: rgba(156, 163, 175, 0.2); color: #9ca3af; }
+        .mood-excited { background: rgba(245, 158, 11, 0.2); color: #f59e0b; }
+
+        /* График активности */
+        .activity-chart {
+            display: flex; align-items: flex-end;
+            gap: 8px; height: 150px;
+            margin-top: 20px; padding: 20px 0;
+        }
+        .bar {
+            flex: 1; background: linear-gradient(to top, #7c3aed, #00f5ff);
+            border-radius: 8px 8px 0 0;
+            min-height: 20px;
+            position: relative;
+            animation: grow-bar 1s ease-out forwards;
+            transform-origin: bottom;
+            transform: scaleY(0);
+        }
+        @keyframes grow-bar {
+            to { transform: scaleY(1); }
+        }
+        .bar-label {
+            position: absolute; bottom: -25px;
+            left: 50%; transform: translateX(-50%);
+            font-size: 10px; opacity: 0.5;
+        }
+
+        /* Топ пользователей */
+        .user-list {
+            margin-top: 15px;
+        }
+        .user-item {
+            display: flex; align-items: center;
+            gap: 15px; padding: 15px;
+            background: rgba(255,255,255,0.03);
+            border-radius: 15px; margin-bottom: 10px;
+            transition: background 0.3s;
+        }
+        .user-item:hover { background: rgba(255,255,255,0.08); }
+        .user-rank {
+            width: 35px; height: 35px;
+            border-radius: 50%; display: flex;
+            align-items: center; justify-content: center;
+            font-weight: bold; font-size: 14px;
+        }
+        .rank-1 { background: linear-gradient(135deg, #ffd700, #ff8c00); }
+        .rank-2 { background: linear-gradient(135deg, #c0c0c0, #808080); }
+        .rank-3 { background: linear-gradient(135deg, #cd7f32, #8b4513); }
+        .rank-other { background: rgba(255,255,255,0.1); }
+        .user-info { flex: 1; }
+        .user-name { font-weight: 600; font-size: 14px; }
+        .user-activity { font-size: 12px; opacity: 0.5; margin-top: 2px; }
+        .user-score {
+            font-size: 20px; font-weight: bold;
+            color: #00f5ff;
+        }
+
+        /* Темы обсуждений */
+        .topics-grid {
+            display: grid; grid-template-columns: repeat(2, 1fr);
+            gap: 10px; margin-top: 15px;
+        }
+        .topic-item {
+            padding: 15px; border-radius: 15px;
+            background: rgba(255,255,255,0.05);
+            border: 1px solid rgba(255,255,255,0.1);
+            text-align: center; transition: all 0.3s;
+        }
+        .topic-item:hover {
+            background: rgba(124, 58, 237, 0.2);
+            border-color: #7c3aed;
+            transform: scale(1.05);
+        }
+        .topic-emoji { font-size: 30px; margin-bottom: 5px; }
+        .topic-name { font-size: 12px; opacity: 0.8; }
+        .topic-count {
+            font-size: 18px; font-weight: bold;
+            color: #00f5ff; margin-top: 5px;
+        }
+
+        /* AI Insights */
+        .insights {
+            background: linear-gradient(135deg, rgba(124, 58, 237, 0.2), rgba(0, 245, 255, 0.1));
+            border: 1px solid rgba(124, 58, 237, 0.3);
+        }
+        .insight-text {
+            font-size: 14px; line-height: 1.8;
+            opacity: 0.9;
+        }
+        .insight-text p { margin-bottom: 10px; }
+        .insight-highlight {
+            color: #00f5ff; font-weight: 600;
+        }
+
+        /* Кнопки */
+        .btn {
+            width: 100%; padding: 18px;
+            border-radius: 15px; border: none;
+            font-size: 16px; font-weight: bold;
+            cursor: pointer; transition: all 0.3s;
+            text-transform: uppercase; letter-spacing: 2px;
+            margin-top: 20px;
+        }
+        .btn-primary {
+            background: linear-gradient(45deg, #7c3aed, #00f5ff);
+            color: #fff; box-shadow: 0 10px 30px rgba(124, 58, 237, 0.4);
+        }
+        .btn-primary:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 15px 40px rgba(124, 58, 237, 0.6);
+        }
+        .btn-primary:active { transform: translateY(-1px); }
+
+        /* Загрузка */
+        .loading {
+            display: flex; flex-direction: column;
+            align-items: center; justify-content: center;
+            height: 60vh; gap: 20px;
+        }
+        .spinner {
+            width: 80px; height: 80px;
+            border: 4px solid rgba(124, 58, 237, 0.3);
+            border-top-color: #00f5ff;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .loading-text {
+            font-size: 14px; opacity: 0.7;
+            letter-spacing: 3px;
+        }
+        .loading-dots::after {
+            content: ''; animation: dots 1.5s infinite;
+        }
+        @keyframes dots {
+            0%, 20% { content: '.'; }
+            40% { content: '..'; }
+            60%, 100% { content: '...'; }
+        }
+
+        /* Статистика сообщений */
+        .stats-grid {
+            display: grid; grid-template-columns: repeat(3, 1fr);
+            gap: 15px; margin-top: 15px;
+        }
+        .stat-item {
+            text-align: center; padding: 15px;
+            background: rgba(255,255,255,0.05);
+            border-radius: 15px;
+        }
+        .stat-value {
+            font-size: 28px; font-weight: bold;
+            color: #00f5ff;
+        }
+        .stat-label {
+            font-size: 11px; opacity: 0.6;
+            margin-top: 5px; text-transform: uppercase;
+        }
+
+        /* Пульсирование */
+        .pulse {
+            animation: pulse 2s ease-in-out infinite;
+        }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+    </style>
+</head>
+<body>
+    <div id="particles"></div>
+
+    <div class="container">
+        <!-- Экран загрузки -->
+        <div id="loading-screen" class="loading">
+            <div class="spinner"></div>
+            <div class="loading-text">
+                Анализирую группу<span class="loading-dots"></span>
+            </div>
+            <div style="font-size: 12px; opacity: 0.5; margin-top: 10px;">
+                Читаю сообщения, анализирую настроения
+            </div>
+        </div>
+
+        <!-- Результаты -->
+        <div id="results-screen" style="display: none;">
+            <div class="header">
+                <h1>🧠 GROUP ANALYZER</h1>
+                <p>AI-анализ вашей группы за последние 24 часа</p>
+            </div>
+
+            <!-- Общее настроение -->
+            <div class="card">
+                <div class="card-title">💭 Общее настроение</div>
+                <div class="card-value" id="sentiment-score">78%</div>
+                <div class="card-subtitle">позитивных эмоций в сообщениях</div>
+                <div class="mood-container" id="mood-tags">
+                    <div class="mood-item mood-positive">😊 Радостное</div>
+                    <div class="mood-item mood-excited">🎉 Активное</div>
+                    <div class="mood-item mood-neutral">🤔 Деловое</div>
+                </div>
+            </div>
+
+            <!-- Активность -->
+            <div class="card">
+                <div class="card-title">📊 Активность по часам</div>
+                <div class="activity-chart" id="activity-chart">
+                    <div class="bar" style="height: 30%">
+                        <span class="bar-label">00:00</span>
+                    </div>
+                    <div class="bar" style="height: 45%">
+                        <span class="bar-label">04:00</span>
+                    </div>
+                    <div class="bar" style="height: 60%">
+                        <span class="bar-label">08:00</span>
+                    </div>
+                    <div class="bar" style="height: 85%">
+                        <span class="bar-label">12:00</span>
+                    </div>
+                    <div class="bar" style="height: 100%">
+                        <span class="bar-label">16:00</span>
+                    </div>
+                    <div class="bar" style="height: 70%">
+                        <span class="bar-label">20:00</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Статистика -->
+            <div class="card">
+                <div class="card-title">📈 Статистика сообщений</div>
+                <div class="stats-grid">
+                    <div class="stat-item">
+                        <div class="stat-value" id="total-messages">1,247</div>
+                        <div class="stat-label">Всего</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value" id="active-users">89</div>
+                        <div class="stat-label">Активных</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value" id="avg-length">42</div>
+                        <div class="stat-label">Средняя длина</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Топ активных -->
+            <div class="card">
+                <div class="card-title">🏆 Топ активных участников</div>
+                <div class="user-list" id="top-users">
+                    <div class="user-item">
+                        <div class="user-rank rank-1">1</div>
+                        <div class="user-info">
+                            <div class="user-name">@username_1</div>
+                            <div class="user-activity">245 сообщений</div>
+                        </div>
+                        <div class="user-score">98</div>
+                    </div>
+                    <div class="user-item">
+                        <div class="user-rank rank-2">2</div>
+                        <div class="user-info">
+                            <div class="user-name">@username_2</div>
+                            <div class="user-activity">198 сообщений</div>
+                        </div>
+                        <div class="user-score">85</div>
+                    </div>
+                    <div class="user-item">
+                        <div class="user-rank rank-3">3</div>
+                        <div class="user-info">
+                            <div class="user-name">@username_3</div>
+                            <div class="user-activity">156 сообщений</div>
+                        </div>
+                        <div class="user-score">72</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Темы -->
+            <div class="card">
+                <div class="card-title">💬 Популярные темы</div>
+                <div class="topics-grid" id="topics-grid">
+                    <div class="topic-item">
+                        <div class="topic-emoji">💻</div>
+                        <div class="topic-name">Технологии</div>
+                        <div class="topic-count">45%</div>
+                    </div>
+                    <div class="topic-item">
+                        <div class="topic-emoji">🎮</div>
+                        <div class="topic-name">Игры</div>
+                        <div class="topic-count">28%</div>
+                    </div>
+                    <div class="topic-item">
+                        <div class="topic-emoji">🎵</div>
+                        <div class="topic-name">Музыка</div>
+                        <div class="topic-count">15%</div>
+                    </div>
+                    <div class="topic-item">
+                        <div class="topic-emoji">📰</div>
+                        <div class="topic-name">Новости</div>
+                        <div class="topic-count">12%</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- AI Insights -->
+            <div class="card insights">
+                <div class="card-title">🤖 AI Анализ</div>
+                <div class="insight-text" id="ai-insights">
+                    <p>Группа демонстрирует <span class="insight-highlight">высокую активность</span> в дневные часы. Преобладает позитивное настроение, участники активно обсуждают технологические темы.</p>
+                    <p>Отмечается <span class="insight-highlight">дружелюбная атмосфера</span> с редкими конфликтами. Рекомендуется поощрять обсуждение новых технологий для поддержания интереса.</p>
+                </div>
+            </div>
+
+            <button class="btn btn-primary" onclick="shareAnalysis()">
+                📤 Поделиться анализом
+            </button>
+            <button class="btn" style="background: rgba(255,255,255,0.1); margin-top: 10px;" onclick="closeApp()">
+                Закрыть
+            </button>
+        </div>
+    </div>
+
+    <script>
+        const tg = window.Telegram.WebApp;
+        tg.expand();
+        tg.ready();
+
+        // Создание частиц фона
+        function createParticles() {
+            const container = document.getElementById('particles');
+            for (let i = 0; i < 30; i++) {
+                const particle = document.createElement('div');
+                particle.className = 'particle';
+                particle.style.left = Math.random() * 100 + '%';
+                particle.style.width = (Math.random() * 5 + 2) + 'px';
+                particle.style.height = particle.style.width;
+                particle.style.animationDelay = Math.random() * 15 + 's';
+                particle.style.animationDuration = (Math.random() * 10 + 10) + 's';
+                container.appendChild(particle);
+            }
+        }
+        createParticles();
+
+        // Получение данных из URL
+        function getAnalysisData() {
+            const params = new URLSearchParams(window.location.search);
+            const data = params.get('data');
+            if (data) {
+                try {
+                    return JSON.parse(decodeURIComponent(data));
+                } catch (e) {
+                    console.error('Failed to parse data:', e);
+                }
+            }
+            return null;
+        }
+
+        // Обновление UI данными
+        function updateUI(data) {
+            if (!data) return;
+
+            // Настроение
+            if (data.sentiment) {
+                document.getElementById('sentiment-score').textContent = data.sentiment + '%';
+                const moodContainer = document.getElementById('mood-tags');
+                moodContainer.innerHTML = '';
+                (data.moods || []).forEach((mood, i) => {
+                    const div = document.createElement('div');
+                    div.className = `mood-item mood-${mood.type}`;
+                    div.style.animationDelay = (i * 0.1) + 's';
+                    div.innerHTML = mood.emoji + ' ' + mood.label;
+                    moodContainer.appendChild(div);
+                });
+            }
+
+            // Статистика
+            if (data.stats) {
+                document.getElementById('total-messages').textContent = data.stats.total;
+                document.getElementById('active-users').textContent = data.stats.activeUsers;
+                document.getElementById('avg-length').textContent = data.stats.avgLength;
+            }
+
+            // Топ пользователей
+            if (data.topUsers) {
+                const container = document.getElementById('top-users');
+                container.innerHTML = '';
+                data.topUsers.forEach((user, i) => {
+                    const rankClass = i === 0 ? 'rank-1' : i === 1 ? 'rank-2' : i === 2 ? 'rank-3' : 'rank-other';
+                    container.innerHTML += `
+                        <div class="user-item">
+                            <div class="user-rank ${rankClass}">${i + 1}</div>
+                            <div class="user-info">
+                                <div class="user-name">${user.name}</div>
+                                <div class="user-activity">${user.messages} сообщений</div>
+                            </div>
+                            <div class="user-score">${user.score}</div>
+                        </div>
+                    `;
+                });
+            }
+
+            // Темы
+            if (data.topics) {
+                const container = document.getElementById('topics-grid');
+                container.innerHTML = '';
+                data.topics.forEach(topic => {
+                    container.innerHTML += `
+                        <div class="topic-item">
+                            <div class="topic-emoji">${topic.emoji}</div>
+                            <div class="topic-name">${topic.name}</div>
+                            <div class="topic-count">${topic.percentage}%</div>
+                        </div>
+                    `;
+                });
+            }
+
+            // AI Insights
+            if (data.insights) {
+                document.getElementById('ai-insights').innerHTML = data.insights;
+            }
+        }
+
+        // Имитация загрузки
+        setTimeout(() => {
+            const data = getAnalysisData();
+            if (data) {
+                updateUI(data);
+            }
+            document.getElementById('loading-screen').style.display = 'none';
+            document.getElementById('results-screen').style.display = 'block';
+            tg.HapticFeedback.notificationOccurred('success');
+        }, 2000);
+
+        function shareAnalysis() {
+            tg.sendData(JSON.stringify({
+                action: 'share_analysis',
+                timestamp: Date.now()
+            }));
+            tg.close();
+        }
+
+        function closeApp() {
+            tg.close();
+        }
+    </script>
+</body>
+</html>

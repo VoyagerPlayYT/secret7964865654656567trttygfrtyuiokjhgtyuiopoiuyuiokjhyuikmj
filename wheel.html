@@ -1,0 +1,356 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>VoyageAI Cyber Wheel</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <style>
+        :root {
+            --bg: #0a0a12;
+            --neon-blue: #00f2ff;
+            --neon-pink: #ff00de;
+            --neon-purple: #bc13fe;
+            --neon-yellow: #f5ed00;
+        }
+
+        body, html {
+            margin: 0; padding: 0;
+            background: var(--bg);
+            background-image: 
+                radial-gradient(circle at 50% 50%, rgba(20, 20, 40, 1) 0%, rgba(5, 5, 10, 1) 100%);
+            color: #fff;
+            font-family: 'Orbitron', sans-serif;
+            overflow: hidden;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+        }
+
+        /* 3D Container */
+        .stage {
+            perspective: 1000px;
+            width: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+        }
+
+        .wheel-box {
+            position: relative;
+            width: 360px; height: 360px;
+            transform: rotateX(15deg);
+            transition: transform 0.5s;
+        }
+
+        #wheel-svg {
+            width: 100%; height: 100%;
+            filter: drop-shadow(0 0 15px rgba(0, 242, 255, 0.4));
+            transition: transform 5s cubic-bezier(0.1, 0, 0.1, 1);
+        }
+
+        .center-hub {
+            position: absolute;
+            top: 50%; left: 50%;
+            transform: translate(-50%, -50%);
+            width: 60px; height: 60px;
+            background: #111;
+            border: 4px solid var(--neon-blue);
+            border-radius: 50%;
+            z-index: 10;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            box-shadow: 0 0 20px var(--neon-blue);
+        }
+
+        .pointer {
+            position: absolute;
+            top: -20px; left: 50%;
+            transform: translateX(-50%);
+            width: 40px; height: 50px;
+            z-index: 20;
+            filter: drop-shadow(0 0 10px var(--neon-pink));
+        }
+
+        /* UI */
+        .header { text-align: center; margin-bottom: 30px; }
+        .header h1 { 
+            font-size: 1.8rem; margin: 0; color: var(--neon-blue); 
+            text-transform: uppercase; letter-spacing: 5px;
+            text-shadow: 0 0 10px var(--neon-blue);
+        }
+        .header p { color: #666; font-size: 0.8rem; margin-top: 5px; }
+
+        .controls { margin-top: 50px; text-align: center; }
+        
+        .spin-btn {
+            background: none;
+            border: 2px solid var(--neon-pink);
+            color: var(--neon-pink);
+            padding: 15px 50px;
+            font-size: 1.2rem;
+            font-weight: bold;
+            text-transform: uppercase;
+            letter-spacing: 3px;
+            cursor: pointer;
+            border-radius: 5px;
+            position: relative;
+            overflow: hidden;
+            transition: 0.3s;
+            box-shadow: inset 0 0 10px var(--neon-pink), 0 0 10px var(--neon-pink);
+        }
+
+        .spin-btn::before {
+            content: '';
+            position: absolute;
+            top: 0; left: -100%;
+            width: 100%; height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,0,222,0.4), transparent);
+            transition: 0.5s;
+        }
+
+        .spin-btn:hover::before { left: 100%; }
+        .spin-btn:hover { background: var(--neon-pink); color: #000; box-shadow: 0 0 30px var(--neon-pink); }
+        .spin-btn:disabled { opacity: 0.3; cursor: default; }
+
+        #status-msg {
+            margin-top: 20px;
+            font-size: 1.1rem;
+            height: 20px;
+            color: var(--neon-yellow);
+            text-shadow: 0 0 5px var(--neon-yellow);
+        }
+
+    </style>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;900&display=swap" rel="stylesheet">
+</head>
+<body>
+
+    <div class="stage">
+        <div class="header">
+            <h1>CYBER WHEEL</h1>
+            <p>СТОИМОСТЬ ПОПЫТКИ: 200 ⚡</p>
+        </div>
+
+        <div class="wheel-box">
+            <div class="pointer">
+                <svg viewBox="0 0 40 50">
+                    <path d="M20 50L0 0H40L20 50Z" fill="#ff00de"/>
+                </svg>
+            </div>
+            <div class="center-hub">
+                <div style="width: 10px; height: 10px; background: var(--neon-blue); border-radius: 50%; box-shadow: 0 0 10px #fff;"></div>
+            </div>
+            <svg id="wheel-svg" viewBox="0 0 500 500">
+                <!-- Сектора будут сгенерированы скриптом -->
+            </svg>
+        </div>
+
+        <div class="controls">
+            <button class="spin-btn" id="btn-spin" onclick="spin()">Initialize Spin</button>
+            <div id="status-msg"></div>
+        </div>
+    </div>
+
+    <script>
+        const tg = window.Telegram.WebApp;
+        tg.expand();
+        tg.ready();
+
+        // Get params from URL
+        const urlParams = new URLSearchParams(window.location.search);
+        const wheelType = urlParams.get('type') || 'standard';
+        const userCredits = parseInt(urlParams.get('credits') || '0');
+        const refCount = parseInt(urlParams.get('refs') || '0');
+        const lastSpinStr = urlParams.get('last_spin') || '';
+        
+        let canSpin = true;
+        let cooldownTime = 0;
+
+        // Configuration for different wheels
+        const configs = {
+            free: {
+                name: "FREE WHEEL",
+                cost: "1 ДРУГ",
+                color: "#4ecdc4",
+                sectors: [
+                    { label: "50 ⚡", color: "#1a2e2e", prize: "credits", amount: 50 },
+                    { label: "EMPTY", color: "#0f1a1a", prize: "none", amount: 0 },
+                    { label: "100 ⚡", color: "#162121", prize: "credits", amount: 100 },
+                    { label: "EMPTY", color: "#0f1a1a", prize: "none", amount: 0 },
+                    { label: "200 ⚡", color: "#1a2e2e", prize: "credits", amount: 200 },
+                    { label: "EMPTY", color: "#0f1a1a", prize: "none", amount: 0 },
+                    { label: "300 ⚡", color: "#162121", prize: "credits", amount: 300 },
+                    { label: "EMPTY", color: "#0f1a1a", prize: "none", amount: 0 }
+                ]
+            },
+            standard: {
+                name: "CYBER WHEEL",
+                cost: "200 ⚡",
+                color: "#00f2ff",
+                sectors: [
+                    { label: "1000 ⚡", color: "#1a1a2e", prize: "credits", amount: 1000 },
+                    { label: "EMPTY", color: "#0f0f1a", prize: "none", amount: 0 },
+                    { label: "NEBULA", color: "#16213e", prize: "rank", amount: "starter" },
+                    { label: "300 ⚡", color: "#1a1a2e", prize: "credits", amount: 300 },
+                    { label: "EMPTY", color: "#0f0f1a", prize: "none", amount: 0 },
+                    { label: "QUASAR", color: "#0f3460", prize: "rank", amount: "pro" },
+                    { label: "100 ⚡", color: "#1a1a2e", prize: "credits", amount: 100 },
+                    { label: "500 ⚡", color: "#16213e", prize: "credits", amount: 500 }
+                ]
+            },
+            vip: {
+                name: "VIP WHEEL",
+                cost: "1000 ⚡",
+                color: "#ffd700",
+                sectors: [
+                    { label: "5000 ⚡", color: "#2e2b1a", prize: "credits", amount: 5000 },
+                    { label: "QUASAR", color: "#1a1a0f", prize: "rank", amount: "pro" },
+                    { label: "SUPERNOVA", color: "#212116", prize: "rank", amount: "ultra" },
+                    { label: "2000 ⚡", color: "#2e2b1a", prize: "credits", amount: 2000 },
+                    { label: "ETERNITY", color: "#1a1a0f", prize: "rank", amount: "infinite" },
+                    { label: "3000 ⚡", color: "#212116", prize: "credits", amount: 3000 },
+                    { label: "1500 ⚡", color: "#2e2b1a", prize: "credits", amount: 1500 },
+                    { label: "GALAXY", color: "#162116", prize: "rank", amount: "business" }
+                ]
+            }
+        };
+
+        const config = configs[wheelType] || configs.standard;
+        document.querySelector('.header h1').innerText = config.name;
+        document.querySelector('.header h1').style.color = config.color;
+        document.querySelector('.header h1').style.textShadow = `0 0 15px ${config.color}`;
+        document.querySelector('.header p').innerText = `СТОИМОСТЬ: ${config.cost}`;
+        document.getElementById('btn-spin').style.borderColor = config.color;
+        document.getElementById('btn-spin').style.color = config.color;
+        document.getElementById('btn-spin').style.boxShadow = `inset 0 0 10px ${config.color}, 0 0 10px ${config.color}`;
+
+        if (wheelType === 'free' && refCount < 1) {
+            canSpin = false;
+        } else if (wheelType === 'standard') {
+            if (userCredits < 200) canSpin = false;
+            if (lastSpinStr) {
+                const lastSpin = new Date(lastSpinStr);
+                const now = new Date();
+                const diff = now - lastSpin;
+                const cooldown = 24 * 60 * 60 * 1000;
+                if (diff < cooldown) {
+                    canSpin = false;
+                    cooldownTime = cooldown - diff;
+                }
+            }
+        } else if (wheelType === 'vip' && userCredits < 1000) {
+            canSpin = false;
+        }
+
+        const spinBtn = document.getElementById('btn-spin');
+        const statusMsg = document.getElementById('status-msg');
+
+        // Update status text
+        if (wheelType === 'free' && refCount < 1) {
+            statusMsg.innerText = "НУЖЕН 1 ПРИГЛАШЕННЫЙ ДРУГ";
+            statusMsg.style.color = "#ff4444";
+        } else if (wheelType === 'standard' && userCredits < 200) {
+            statusMsg.innerText = `НУЖНО 200 ⚡ (У ВАС ${userCredits})`;
+            statusMsg.style.color = "#ff4444";
+        } else if (wheelType === 'standard' && cooldownTime > 0) {
+            const h = Math.floor(cooldownTime / 3600000);
+            const m = Math.floor((cooldownTime % 3600000) / 60000);
+            statusMsg.innerText = `ПЕРЕЗАРЯДКА: ${h}Ч ${m}М`;
+            statusMsg.style.color = "#ffd700";
+        } else if (wheelType === 'vip' && userCredits < 1000) {
+            statusMsg.innerText = `НУЖНО 1000 ⚡ (У ВАС ${userCredits})`;
+            statusMsg.style.color = "#ff4444";
+        }
+
+        const sectors = config.sectors;
+        const svg = document.getElementById('wheel-svg');
+        const numSectors = sectors.length;
+        const anglePerSector = 360 / numSectors;
+
+        // Draw sectors
+        sectors.forEach((s, i) => {
+            const startAngle = i * anglePerSector;
+            const endAngle = (i + 1) * anglePerSector;
+            const x1 = 250 + 240 * Math.cos(Math.PI * startAngle / 180);
+            const y1 = 250 + 240 * Math.sin(Math.PI * startAngle / 180);
+            const x2 = 250 + 240 * Math.cos(Math.PI * endAngle / 180);
+            const y2 = 250 + 240 * Math.sin(Math.PI * endAngle / 180);
+
+            const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+            path.setAttribute("d", `M250,250 L${x1},${y1} A240,240 0 0,1 ${x2},${y2} Z`);
+            path.setAttribute("fill", s.color);
+            path.setAttribute("stroke", config.color);
+            path.setAttribute("stroke-width", "2");
+            svg.appendChild(path);
+
+            const text = document.createElementNS("http://www.w3.org/2000/svg", "text");
+            const textAngle = startAngle + anglePerSector / 2;
+            const tx = 250 + 150 * Math.cos(Math.PI * textAngle / 180);
+            const ty = 250 + 150 * Math.sin(Math.PI * textAngle / 180);
+            
+            text.setAttribute("x", tx);
+            text.setAttribute("y", ty);
+            text.setAttribute("fill", "#fff");
+            text.setAttribute("font-size", "14");
+            text.setAttribute("font-weight", "bold");
+            text.setAttribute("text-anchor", "middle");
+            text.setAttribute("transform", `rotate(${textAngle}, ${tx}, ${ty})`);
+            text.textContent = s.label;
+            svg.appendChild(text);
+        });
+
+        let currentRotation = 0;
+        let spinning = false;
+
+        function spin() {
+            if (spinning) return;
+            
+            if (!canSpin) {
+                tg.HapticFeedback.notificationOccurred('error');
+                if (wheelType === 'free') alert("Пригласите хотя бы 1 друга!");
+                else if (userCredits < (wheelType === 'vip' ? 1000 : 200)) alert("Недостаточно энергии!");
+                else alert("Колесо еще не перезарядилось!");
+                return;
+            }
+
+            spinning = true;
+            spinBtn.disabled = true;
+            statusMsg.innerText = "ИНИЦИАЛИЗАЦИЯ ПОТОКА...";
+            
+            tg.HapticFeedback.impactOccurred('medium');
+
+            const prizeIndex = Math.floor(Math.random() * numSectors);
+            const extraSpins = 5 + Math.floor(Math.random() * 5);
+            const finalRotation = extraSpins * 360 + (360 - (prizeIndex * anglePerSector)) - anglePerSector/2;
+            
+            currentRotation += finalRotation;
+            svg.style.transform = `rotate(${currentRotation}deg)`;
+
+            setTimeout(() => {
+                const prize = sectors[prizeIndex];
+                
+                if (prize.prize === 'none') {
+                    statusMsg.innerText = "СИСТЕМА: ПУСТО";
+                    statusMsg.style.color = "#ff0055";
+                    tg.HapticFeedback.notificationOccurred('error');
+                } else {
+                    statusMsg.innerText = `ВЫИГРЫШ: ${prize.label}`;
+                    statusMsg.style.color = config.color;
+                    tg.HapticFeedback.notificationOccurred('success');
+                }
+
+                setTimeout(() => {
+                    tg.sendData(`WHEEL_RESULT:${wheelType}:${prize.prize}:${prize.amount}`);
+                    tg.close();
+                }, 2000);
+            }, 5500);
+        }
+
+    </script>
+</body>
+</html>
